@@ -24,6 +24,8 @@ static tgbm::api::reply_markup_t GetDataCollectorMessage() {
 static dd::task<void> answer_query(tgbm::bot& bot, tgbm::api::CallbackQuery q) {
   using namespace tgbm::api;
 
+  // if (q.data)
+
   bool success = co_await bot.api.answerCallbackQuery({
     .callback_query_id = q.id,
     .text = q.data
@@ -64,16 +66,19 @@ int main() {
     fmt::println("launching telegram bot requires bot token from @BotFather");
     return -1;
   }
+  Database db;
 
   tgbm::bot bot{token /*"api.telegram.org", "some_ssl_certificate"*/};
 
-  bot.commands.add("get_keyboard", [&bot](tgbm::api::Message&& m) {
-    // std::invoke([&bot, m] -> dd::task<void> {
-    //   co_await bot.api.sendMessage({
-    //     .chat_id = m.chat->id,
-    //     .text = fmt::format("ID этого опроса: {}")
-    //   });
-    // }).start_and_detach();
+  bot.commands.add("get_keyboard", [&bot, &db](tgbm::api::Message&& m) {
+    std::invoke([&bot, m, &db] -> dd::task<void> {
+      db.AddActivityCheck();
+      co_await bot.api.sendMessage({
+        .chat_id = m.chat->id,
+        .text = fmt::format("ID этого опроса: {}")
+      });
+
+    }).start_and_detach();
     dd::task sendmsg = bot.api.sendMessage({
         .chat_id = m.chat->id,
         .text = "Отметьте свою активность",

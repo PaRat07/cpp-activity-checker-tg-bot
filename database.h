@@ -157,10 +157,12 @@ public:
   }
 
   // returns check id
-  int64_t AddActivityCheck() {
+  int64_t AddActivityCheck(int64_t owner) {
     // required for consistency of fs and db
     SQLite::Transaction trx(db);
+    add_activity_check_sttmnt.bind(1, owner);
     add_activity_check_sttmnt.exec();
+    add_activity_check_sttmnt.reset();
     int64_t check_id = db.getLastInsertRowid();
     fspath act_check_dir = kDatabaseDir / std::to_string(check_id);
     std::filesystem::create_directory(act_check_dir);
