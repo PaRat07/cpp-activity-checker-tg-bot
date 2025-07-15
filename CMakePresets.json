@@ -1,0 +1,74 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 29,
+    "patch": 0
+  },
+  "include": [],
+  "configurePresets": [
+    {
+      "name": "base",
+      "displayName": "Base Config",
+      "description": "Base configuration using Ninja generator",
+      "generator": "Ninja",
+      "hidden": true,
+      "warnings": {
+        "dev": true,
+        "uninitialized": true
+      },
+      "errors": {
+        "dev": false,
+        "deprecated": true
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER" : "/usr/bin/clang-20",
+        "CMAKE_CXX_COMPILER" : "/usr/bin/clang++-20",
+        "CMAKE_LINKER_TYPE" : "LLD",
+        "CMAKE_CXX_STANDARD" : "26",
+        "CMAKE_CXX_FLAGS" : "-stdlib=libc++ -Wall -Wpedantic -Wextra -D_LIBCPP_ABI_ENABLE_UNIQUE_PTR_TRIVIAL_ABI",
+        "CMAKE_POLICY_VERSION_MINIMUM" : "3.5"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "displayName": "Debug",
+      "description": "Debug configuration using Ninja generator",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS_DEBUG": "-fsanitize=address -fstack-protector-all -g -fno-omit-frame-pointer -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG -D_LIBCPP_DEBUG -D_LIBCPP_ENABLE_DEBUG_MODE -D_LIBCPP_DEBUG_LEVEL=2 -D_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS -D_LIBCPP_ENABLE_CONTRACTS"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "displayName": "Release",
+      "description": "Release configuration using Ninja generator",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -flto=full -march=native -fno-plt -fomit-frame-pointer -mtune=native -mllvm -enable-jump-table-to-switch"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "configurePreset": "debug",
+      "verbose": true
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "configurePreset": "release",
+      "verbose": true
+    }
+  ],
+  "workflowPresets": [],
+  "testPresets": [],
+  "packagePresets": [],
+  "vendor": {}
+}
