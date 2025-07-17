@@ -14,21 +14,14 @@
       "generator": "Ninja",
       "hidden": true,
       "warnings": {
-        "dev": true,
+        "dev": false,
         "uninitialized": true
       },
       "errors": {
         "dev": false,
         "deprecated": true
       },
-      "cacheVariables": {
-        "CMAKE_C_COMPILER" : "/usr/bin/clang-20",
-        "CMAKE_CXX_COMPILER" : "/usr/bin/clang++-20",
-        "CMAKE_LINKER_TYPE" : "LLD",
-        "CMAKE_CXX_STANDARD" : "26",
-        "CMAKE_CXX_FLAGS" : "-stdlib=libc++ -static -lc++abi -Wall -Wpedantic -Wextra -D_LIBCPP_ABI_ENABLE_UNIQUE_PTR_TRIVIAL_ABI",
-        "CMAKE_POLICY_VERSION_MINIMUM" : "3.5"
-      }
+      "toolchainFile": "toolchains/clang-libcxx-toolchain.cmake"
     },
     {
       "name": "debug",
@@ -49,7 +42,7 @@
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -flto=full -march=native -fno-plt -fomit-frame-pointer -mtune=native -mllvm -enable-jump-table-to-switch"
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -flto=full -march=native -mtune=native -mllvm -enable-jump-table-to-switch"
       }
     }
   ],

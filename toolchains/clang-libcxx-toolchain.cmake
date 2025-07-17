@@ -1,0 +1,6 @@
+set(CMAKE_CXX_COMPILER /usr/bin/clang++-20)
+set(CMAKE_C_COMPILER /usr/bin/clang-20)
+set(CMAKE_LINKER_TYPE LLD)
+set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
+set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
+set(CMAKE_CXX_FLAGS "-stdlib=libc++ -static -Wall -Wpedantic -Wextra -D_LIBCPP_ABI_ENABLE_UNIQUE_PTR_TRIVIAL_ABI")

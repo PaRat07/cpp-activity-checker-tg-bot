@@ -10,7 +10,7 @@
 #include <tgbm/utils/formatters.hpp>
 #include <tgbm/utils/scope_exit.hpp>
 
-#include "database.h"
+#include "include/database.h"
 
 #define LIFT(func) [] (auto&&... args) { return func(std::forward<decltype(args)>(args)...); }
 
