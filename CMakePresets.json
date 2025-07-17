@@ -42,7 +42,7 @@
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -flto=full -march=native -mtune=native -mllvm -enable-jump-table-to-switch"
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -flto=full -march=native -DNDEBUG -mtune=native -mllvm -enable-jump-table-to-switch"
       }
     }
   ],
