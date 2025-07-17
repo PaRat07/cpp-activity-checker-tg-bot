@@ -54,7 +54,7 @@ std::optional<T> GetQueryOne(SQLite::Statement &que) {
   } else {
     T ans;
     ans = que.getColumn(0);
-    if (!que.executeStep()) {
+    if (que.executeStep()) {
       assert(false);
     }
     return ans;
@@ -132,7 +132,7 @@ public:
      nullptr
  );
           db.exec("CREATE TABLE IF NOT EXISTS activity (activity_check_id INTEGER, participant_id INTEGER, UNIQUE(activity_check_id, participant_id))");
-          db.exec("CREATE TABLE IF NOT EXISTS activity_check (id INTEGER AUTO_INCREMENT PRIMARY KEY, owner INTEGER)");
+          db.exec("CREATE TABLE IF NOT EXISTS activity_check (id INTEGER PRIMARY KEY AUTOINCREMENT, owner INTEGER)");
           return db;
         } ()),
       add_activity_check_sttmnt(db, "INSERT OR IGNORE INTO activity_check (owner) VALUES (?)"),

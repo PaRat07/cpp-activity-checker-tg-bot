@@ -2,16 +2,20 @@
 #include <utility>
 #include <memory>
 #include <new>
-#include <tgbm/bot.hpp>
+#include <ranges>
+#include <charconv>
+#include <cctype>
 
+#include <tgbm/bot.hpp>
 #include <tgbm/utils/formatters.hpp>
 #include <tgbm/utils/scope_exit.hpp>
 
 #include "database.h"
 
-#include <charconv>
+#define LIFT(func) [] (auto&&... args) { return func(std::forward<decltype(args)>(args)...); }
 
 constexpr std::string_view kCallbackMarkActivePrefix = "mark_active ";
+
 
 static tgbm::api::InlineKeyboardMarkup GetDataCollectorMessage(int64_t id) {
   using namespace tgbm::api;
@@ -41,7 +45,7 @@ std::optional<int64_t> ParseMarkActiveQuery(tgbm::api::optional<std::string> &qu
   }
 }
 
-static dd::task<void> answer_query(tgbm::bot& bot, tgbm::api::CallbackQuery q) {
+static dd::task<void> AnswerCallbackQuery(tgbm::bot& bot, tgbm::api::CallbackQuery q) {
   using namespace tgbm::api;
 
   int64_t act_check_id;
@@ -70,20 +74,37 @@ static dd::task<void> answer_query(tgbm::bot& bot, tgbm::api::CallbackQuery q) {
 dd::task<void> AnswerInlineQuery(tgbm::bot& bot, tgbm::api::InlineQuery q) {
   using namespace tgbm::api;
 
-
   int64_t act_id = GetDb().AddActivityCheck(q.from->id);
+
   InlineQueryResultArticle res {
-    .id = "RESULT ID",
-      .title = fmt::format("Отметьте свою активность (ID проверки: )", act_id),
-      .description = "Description",
-    .input_message_content = InputTextMessageContent{ .message_text = "Message Text" }
-      // .reply_markup = GetDataCollectorMessage(act_id)
+    .id = std::to_string(act_id),
+    .title = "Создать проверку активности",
+    .description = "",
+    .input_message_content = InputTextMessageContent{
+      .message_text = fmt::format("Отметьте свою активность", act_id)
+    },
+    .reply_markup = GetDataCollectorMessage(act_id)
   };
 
-  co_await bot.api.answerInlineQuery({
+  bool succed = co_await bot.api.answerInlineQuery({
     .inline_query_id = q.id,
     .results = { InlineQueryResult{res} },
-    .is_personal = true,
+    .cache_time = 0
+  });
+
+  if (!succed) {
+    TGBM_LOG_ERROR("bot cannot handle inline query =(");
+    co_return;
+  }
+}
+
+dd::task<void> AnswerInlineChosen(tgbm::bot& bot, tgbm::api::ChosenInlineResult q) {
+  using namespace tgbm::api;
+
+  co_await bot.api.sendMessage({
+    .chat_id = q.from->id.value,
+    .text = fmt::format("ID проверки активности: `{}`", q.result_id),
+    .parse_mode = "MarkdownV2"
   });
 }
 
@@ -95,11 +116,15 @@ dd::task<void> start_main_task(tgbm::bot& bot) {
   fmt::println("launching echobot, info: {}", co_await bot.api.getMe());
 
   co_foreach(tgbm::api::Update && u, bot.updates()) {
-
+    TGBM_LOG_DEBUG("got something");
     if (auto *cq = u.get_callback_query(); cq) {
-      answer_query(bot, std::move(*cq)).start_and_detach();
+      AnswerCallbackQuery(bot, std::move(*cq)).start_and_detach();
     } else if (auto *iq = u.get_inline_query(); iq) {
-      AnswerInlineQuery(bot, std::move(*iq)).start_and_detach();
+      AnswerInlineQuery  (bot, std::move(*iq)).start_and_detach();
+    } else if (auto *cir = u.get_chosen_inline_result(); cir) {
+      AnswerInlineChosen(bot, std::move(*cir)).start_and_detach();
+    } else {
+      TGBM_LOG_DEBUG("passed upd: {}", u.discriminator_now());
     }
   }
 }
@@ -113,19 +138,40 @@ int main() {
 
   tgbm::bot bot{token /*"api.telegram.org", "some_ssl_certificate"*/};
 
-  bot.commands.add("get_keyboard", [bot_ptr = &bot](tgbm::api::Message&& m) {
-    std::invoke([] (tgbm::bot &bot, tgbm::api::Integer chat_id) -> dd::task<void> {
-      int64_t act_id = GetDb().AddActivityCheck(chat_id);
-      co_await bot.api.sendMessage({
-        .chat_id = chat_id,
-        .text = fmt::format("ID этой проверки активности: {}", act_id)
-      });
-      co_await bot.api.sendMessage({
-        .chat_id = chat_id,
-        .reply_markup = GetDataCollectorMessage(act_id),
-        .text = "Отметьте свою активность"
-      });
-    }, *bot_ptr, m.chat->id).start_and_detach();
+  static constexpr std::string_view kGetRessultCommand = "get_result";
+  bot.commands.add(std::string(kGetRessultCommand), [bot_ptr = &bot](tgbm::api::Message&& m) {
+    std::invoke([] (tgbm::bot &bot, tgbm::api::Integer chat_id, tgbm::api::optional<std::string> text) static -> dd::task<void> {
+      if (!text.has_value()) [[unlikely]] {
+        TGBM_LOG_ERROR("empty command text for get_result");
+        co_return;
+      }
+      std::string_view text_sv = text.value();
+      std::string_view num_sv = text_sv.substr(text_sv.find(kGetRessultCommand) + kGetRessultCommand.size());
+      num_sv.remove_prefix(std::find_if(num_sv.begin(), num_sv.end(), LIFT(std::isdigit)) - num_sv.begin());
+      {
+        size_t cnt = 0;
+        while (cnt < num_sv.size() && std::isdigit(num_sv[cnt])) {
+          ++cnt;
+        }
+        num_sv = num_sv.substr(0, cnt);
+      }
+      int64_t num;
+      if (std::from_chars(num_sv.begin(), num_sv.end(), num).ec != std::errc()) {
+        TGBM_LOG_DEBUG("invalid number format for get_result: \"{}\"", num_sv);
+        co_return;
+      }
+      if (auto path_or_err = GetDb().GetActivityCheckList(num, chat_id); path_or_err.has_value()) {
+        co_await bot.api.sendDocument({
+          .chat_id = chat_id,
+          .document = tgbm::api::InputFile::from_file(path_or_err.value(), "text/csv")
+        });
+      } else {
+        co_await bot.api.sendMessage({
+          .chat_id = chat_id,
+          .text = std::string(path_or_err.error())
+        });
+      }
+    }, *bot_ptr, m.chat->id, std::move(m.text)).start_and_detach();
   });
 
   start_main_task(bot).start_and_detach();

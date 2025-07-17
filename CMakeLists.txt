@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10...3.11)
 project(tg_waifu)
-
+set(CMAKE_C_IMPLICIT_LINK_LIBRARIES    "")
+set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES  "")
 set(CMAKE_CXX_STANDARD 23)
 
 file(

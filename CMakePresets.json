@@ -26,7 +26,7 @@
         "CMAKE_CXX_COMPILER" : "/usr/bin/clang++-20",
         "CMAKE_LINKER_TYPE" : "LLD",
         "CMAKE_CXX_STANDARD" : "26",
-        "CMAKE_CXX_FLAGS" : "-stdlib=libc++ -static -Wall -Wpedantic -Wextra -D_LIBCPP_ABI_ENABLE_UNIQUE_PTR_TRIVIAL_ABI",
+        "CMAKE_CXX_FLAGS" : "-stdlib=libc++ -static -lc++abi -Wall -Wpedantic -Wextra -D_LIBCPP_ABI_ENABLE_UNIQUE_PTR_TRIVIAL_ABI",
         "CMAKE_POLICY_VERSION_MINIMUM" : "3.5"
       }
     },
