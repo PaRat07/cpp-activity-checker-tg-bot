@@ -108,7 +108,7 @@ dd::task<void> AnswerInlineChosen(tgbm::bot& bot, tgbm::api::ChosenInlineResult 
   });
 }
 
-dd::task<void> start_main_task(tgbm::bot& bot) {
+dd::task<void> StartMainTask(tgbm::bot& bot) {
   on_scope_exit {
     // stop bot on failure
     bot.stop();
@@ -190,7 +190,7 @@ int main() {
     HandleHelpCommand(bot, m.chat->id).start_and_detach();
   });
 
-  start_main_task(bot).start_and_detach();
+  StartMainTask(bot).start_and_detach();
   bot.run();
 
   return 0;
