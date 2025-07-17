@@ -129,6 +129,51 @@ dd::task<void> start_main_task(tgbm::bot& bot) {
   }
 }
 
+dd::task<void> HandleGetResultCommand(tgbm::bot &bot, tgbm::api::Integer chat_id, tgbm::api::optional<std::string> text) {
+  static constexpr std::string_view kGetResultCommand = "get_result";
+  if (!text.has_value()) [[unlikely]] {
+    TGBM_LOG_ERROR("empty command text for get_result");
+    co_return;
+  }
+  std::string_view text_sv = text.value();
+  std::string_view num_sv = text_sv.substr(text_sv.find(kGetResultCommand) + kGetResultCommand.size());
+  num_sv.remove_prefix(std::find_if(num_sv.begin(), num_sv.end(), LIFT(std::isdigit)) - num_sv.begin());
+  {
+    size_t cnt = 0;
+    while (cnt < num_sv.size() && std::isdigit(num_sv[cnt])) {
+      ++cnt;
+    }
+    num_sv = num_sv.substr(0, cnt);
+  }
+  int64_t num;
+  if (std::from_chars(num_sv.begin(), num_sv.end(), num).ec != std::errc()) {
+    TGBM_LOG_DEBUG("invalid number format for get_result: \"{}\"", num_sv);
+    co_return;
+  }
+  if (auto path_or_err = GetDb().GetActivityCheckList(num, chat_id); path_or_err.has_value()) {
+    co_await bot.api.sendDocument({
+      .chat_id = chat_id,
+      .document = tgbm::api::InputFile::from_file(path_or_err.value(), "text/csv")
+    });
+  } else {
+    co_await bot.api.sendMessage({
+      .chat_id = chat_id,
+      .text = std::string(path_or_err.error())
+    });
+  }
+}
+
+dd::task<void> HandleHelpCommand(tgbm::bot &bot, tgbm::api::Integer chat_id) {
+  static constexpr std::string_view kInfo =
+"- Создание проверки активности: если вы хотите создать проверку активности, наберите тэг бота в чате, куда хотите отправить сообщение и нажмите на появившуюся кнопку \"Создать проверку активности\". В чат будет отправлено сообщение с кнопкой для учета активности, а вам в личные сообщения - уникальный ID этой проверки активности.\n"
+"- Отметка активности: нажмите на кнопку под сообщением с проверкой активности. После этого появится модально окно с надписью \"Спасибо, ваша активность учтена\". В случае, если вы нажмете на кнопку повторно, появится модальное окно с надписью \"Спасибо, но ваша активность уже была учтена ранее\"\n"
+"- Сбор результатов проверки активности: чтобы получить результаты проверки активности отправьте в личные сообщения боту сообщение вида \"/get_result <ID проверки>\", вам будет выслан csv-файл.\n";
+  co_await bot.api.sendMessage({
+    .chat_id = chat_id,
+    .text = std::string(kInfo)
+  });
+}
+
 int main() {
   const char* token = std::getenv("BOT_TOKEN");
   if (!token) {
@@ -138,40 +183,11 @@ int main() {
 
   tgbm::bot bot{token /*"api.telegram.org", "some_ssl_certificate"*/};
 
-  static constexpr std::string_view kGetRessultCommand = "get_result";
-  bot.commands.add(std::string(kGetRessultCommand), [bot_ptr = &bot](tgbm::api::Message&& m) {
-    std::invoke([] (tgbm::bot &bot, tgbm::api::Integer chat_id, tgbm::api::optional<std::string> text) static -> dd::task<void> {
-      if (!text.has_value()) [[unlikely]] {
-        TGBM_LOG_ERROR("empty command text for get_result");
-        co_return;
-      }
-      std::string_view text_sv = text.value();
-      std::string_view num_sv = text_sv.substr(text_sv.find(kGetRessultCommand) + kGetRessultCommand.size());
-      num_sv.remove_prefix(std::find_if(num_sv.begin(), num_sv.end(), LIFT(std::isdigit)) - num_sv.begin());
-      {
-        size_t cnt = 0;
-        while (cnt < num_sv.size() && std::isdigit(num_sv[cnt])) {
-          ++cnt;
-        }
-        num_sv = num_sv.substr(0, cnt);
-      }
-      int64_t num;
-      if (std::from_chars(num_sv.begin(), num_sv.end(), num).ec != std::errc()) {
-        TGBM_LOG_DEBUG("invalid number format for get_result: \"{}\"", num_sv);
-        co_return;
-      }
-      if (auto path_or_err = GetDb().GetActivityCheckList(num, chat_id); path_or_err.has_value()) {
-        co_await bot.api.sendDocument({
-          .chat_id = chat_id,
-          .document = tgbm::api::InputFile::from_file(path_or_err.value(), "text/csv")
-        });
-      } else {
-        co_await bot.api.sendMessage({
-          .chat_id = chat_id,
-          .text = std::string(path_or_err.error())
-        });
-      }
-    }, *bot_ptr, m.chat->id, std::move(m.text)).start_and_detach();
+  bot.commands.add("get_result", [&bot](tgbm::api::Message&& m) {
+    HandleGetResultCommand(bot, m.chat->id, std::move(m.text)).start_and_detach();
+  });
+  bot.commands.add("help", [&bot](tgbm::api::Message&& m) {
+    HandleHelpCommand(bot, m.chat->id).start_and_detach();
   });
 
   start_main_task(bot).start_and_detach();
