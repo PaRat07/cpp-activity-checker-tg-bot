@@ -1,5 +1,28 @@
 #include "../include/database.h"
 
+#include <fmt/os.h>
+#include <sqlite3.h>
+
+#include <tgbm/utils/scope_exit.hpp>
+
+#include <fcntl.h>
+#include <unistd.h>
+
+
+template<typename T>
+static std::optional<T> GetQueryOne(SQLite::Statement &que) {
+  if (!que.executeStep()) {
+    return std::nullopt;
+  } else {
+    T ans;
+    ans = que.getColumn(0);
+    if (que.executeStep()) {
+      assert(false);
+    }
+    return ans;
+  }
+}
+
 std::string EscapedStr(std::string_view sv) {
   std::string ans;
   ans.push_back('"');
@@ -93,10 +116,17 @@ std::string_view Database::AddActivity(int64_t check_id, int64_t userId, std::st
   };
   if (add_activity.exec() > 0) {
     fspath act_check_dir = kDatabaseDir / std::to_string(check_id);
-    std::string to_append =
-        fmt::format("{},{},{:%Y-%m-%dT%H:%M:%S}\n", userId, EscapedStr(fullName), checkInDate);
-    // TODO check if std::ofstream::write is atomic
-    std::ofstream(act_check_dir / kActivityFileName, std::ios::app).write(to_append.data(), to_append.size());
+    std::string to_append = fmt::format("{},{},{:%Y-%m-%dT%H:%M:%S}\n", userId, EscapedStr(fullName), checkInDate);
+    // it's disgusting, but it's the easiest way to reach atomicity of write
+    int fd = open((act_check_dir / kActivityFileName).c_str(), O_APPEND | O_WRONLY);
+    if (fd < 0) {
+      TGBM_LOG_ERROR("error while trying to open file at path: \"{}\", errno value: \"{}\"", (act_check_dir / kActivityFileName).c_str(), std::system_category().default_error_condition(errno).message());
+      return "Внутренняя ошибка сервера";
+    }
+    on_scope_exit {
+      close(fd);
+    };
+    write(fd, to_append.data(), to_append.size());
     return "Спасибо, ваша активность учтена";
   } else {
     TGBM_LOG_DEBUG("user {} tried to register to {} repeatedly", userId, check_id);
@@ -114,10 +144,23 @@ int64_t Database::AddActivityCheck(int64_t owner) {
   fspath act_check_dir = kDatabaseDir / std::to_string(check_id);
   std::filesystem::create_directory(act_check_dir);
   static constexpr std::string_view kCsvHeaders = "userId,fullName,checkInDate\n";
-  // TODO check if std::ofstream::write is atomic
-  // std::ios::trunk is for cases, when
-  std::ofstream(act_check_dir / kActivityFileName, std::ios::trunc)
-      .write(kCsvHeaders.data(), kCsvHeaders.size());
+  // it's disgusting, but it's the easiest way to reach atomicity of write
+  // O_TRUNC is for cases, when previous try failed between writing to file and db
+  int fd = open((act_check_dir / kActivityFileName).c_str(), O_APPEND | O_WRONLY | O_CREAT | O_TRUNC, 0644 /* owner: rw, other: r*/);
+  if (fd < 0) {
+    TGBM_LOG_ERROR("error while trying to open file at path: \"{}\", errno value: \"{}\"", (act_check_dir / kActivityFileName).c_str(), std::system_category().default_error_condition(errno).message());
+    // fun-fact: this exception wont be logged)
+    throw std::system_error(errno, std::system_category(), fmt::format("error while trying to open file at path: \"{}\"", (act_check_dir / kActivityFileName).c_str()));
+  }
+  on_scope_exit {
+    close(fd);
+  };
+  int write_res = write(fd, kCsvHeaders.data(), kCsvHeaders.size());
+  if (write_res < 0) {
+    TGBM_LOG_ERROR("error while trying to write to file at path: \"{}\", errno value: \"{}\"", (act_check_dir / kActivityFileName).c_str(), std::system_category().default_error_condition(errno).message());
+    // fun-fact: this exception wont be logged)
+    throw std::system_error(errno, std::system_category(), fmt::format("error while trying to write to file at path: \"{}\"", (act_check_dir / kActivityFileName).c_str()));
+  }
   // if program fail here activity check is in fs, but not it db
   trx.commit();
   return check_id;

@@ -1,32 +1,14 @@
 #pragma once
-#include <sqlite3.h>
+
 #include <filesystem>
-#include <string>
-#include <map>
 #include <atomic>
 #include <expected>
-#include <fstream>
+#include <string>
 
-
-#include <SQLiteCpp/SQLiteCpp.h>
-
-#include <tgbm/utils/scope_exit.hpp>
 #include <tgbm/api/Integer.hpp>
 #include <tgbm/logger.hpp>
 
-template<typename T>
-std::optional<T> GetQueryOne(SQLite::Statement &que) {
-  if (!que.executeStep()) {
-    return std::nullopt;
-  } else {
-    T ans;
-    ans = que.getColumn(0);
-    if (que.executeStep()) {
-      assert(false);
-    }
-    return ans;
-  }
-}
+#include <SQLiteCpp/SQLiteCpp.h>
 
 std::string EscapedStr(std::string_view sv);
 

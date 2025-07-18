@@ -28,7 +28,7 @@ static tgbm::api::InlineKeyboardMarkup GetDataCollectorMessage(int64_t id) {
   return markup;
 }
 
-std::optional<int64_t> ParseMarkActiveQuery(tgbm::api::optional<std::string> &query) {
+static std::optional<int64_t> ParseMarkActiveQuery(tgbm::api::optional<std::string> &query) {
   if (query.has_value()) {
     std::string_view str = query.value();
     if (str.starts_with(kCallbackMarkActivePrefix)) {
@@ -69,9 +69,10 @@ static dd::task<void> AnswerCallbackQuery(tgbm::bot& bot, tgbm::api::CallbackQue
     TGBM_LOG_ERROR("bot cannot handle callback query =(");
     co_return;
   }
+  co_return;
 }
 
-dd::task<void> AnswerInlineQuery(tgbm::bot& bot, tgbm::api::InlineQuery q) {
+static dd::task<void> AnswerInlineQuery(tgbm::bot& bot, tgbm::api::InlineQuery q) {
   using namespace tgbm::api;
 
   int64_t act_id = GetDb().AddActivityCheck(q.from->id);
@@ -96,9 +97,10 @@ dd::task<void> AnswerInlineQuery(tgbm::bot& bot, tgbm::api::InlineQuery q) {
     TGBM_LOG_ERROR("bot cannot handle inline query =(");
     co_return;
   }
+  co_return;
 }
 
-dd::task<void> AnswerInlineChosen(tgbm::bot& bot, tgbm::api::ChosenInlineResult q) {
+static dd::task<void> AnswerInlineChosen(tgbm::bot& bot, tgbm::api::ChosenInlineResult q) {
   using namespace tgbm::api;
 
   co_await bot.api.sendMessage({
@@ -106,6 +108,7 @@ dd::task<void> AnswerInlineChosen(tgbm::bot& bot, tgbm::api::ChosenInlineResult 
     .text = fmt::format("ID проверки активности: `{}`", q.result_id),
     .parse_mode = "MarkdownV2"
   });
+  co_return;
 }
 
 dd::task<void> StartMainTask(tgbm::bot& bot) {
@@ -127,12 +130,13 @@ dd::task<void> StartMainTask(tgbm::bot& bot) {
       TGBM_LOG_DEBUG("passed upd: {}", u.discriminator_now());
     }
   }
+  co_return;
 }
 
-dd::task<void> HandleGetResultCommand(tgbm::bot &bot, tgbm::api::Integer chat_id, tgbm::api::optional<std::string> text) {
+static dd::task<void> HandleGetResultCommand(tgbm::bot &bot, tgbm::api::Integer chat_id, tgbm::api::optional<std::string> text) {
   static constexpr std::string_view kGetResultCommand = "get_result";
   if (!text.has_value()) [[unlikely]] {
-    TGBM_LOG_ERROR("empty command text for get_result");
+    TGBM_LOG_ERROR("empty command text for get_result, idk how is it possible");
     co_return;
   }
   std::string_view text_sv = text.value();
@@ -147,6 +151,10 @@ dd::task<void> HandleGetResultCommand(tgbm::bot &bot, tgbm::api::Integer chat_id
   }
   int64_t num;
   if (std::from_chars(num_sv.begin(), num_sv.end(), num).ec != std::errc()) {
+    co_await bot.api.sendMessage({
+      .chat_id = chat_id,
+      .text = "Некорректный формат команды, попробуйте /get_result <ID сбора активности>"
+    });
     TGBM_LOG_DEBUG("invalid number format for get_result: \"{}\"", num_sv);
     co_return;
   }
@@ -161,6 +169,7 @@ dd::task<void> HandleGetResultCommand(tgbm::bot &bot, tgbm::api::Integer chat_id
       .text = std::string(path_or_err.error())
     });
   }
+  co_return;
 }
 
 dd::task<void> HandleHelpCommand(tgbm::bot &bot, tgbm::api::Integer chat_id) {
@@ -172,6 +181,7 @@ dd::task<void> HandleHelpCommand(tgbm::bot &bot, tgbm::api::Integer chat_id) {
     .chat_id = chat_id,
     .text = std::string(kInfo)
   });
+  co_return;
 }
 
 int main() {
