@@ -16,13 +16,15 @@ RUN apk add --no-cache  \
     linux-headers\
     llvm-libunwind-static\
     	llvm-libunwind-dev\
-    	llvm-libunwind
+    	llvm-libunwind upx
 
 COPY . .
 
 RUN mkdir /build
 RUN cmake --preset release -DCMAKE_BUILD_TYPE=Release -S . -B /build
 RUN cmake --build /build --target activity-check-bot
+
+RUN upx --lzma --best /build/activity-check-bot
 
 FROM alpine:latest
 
