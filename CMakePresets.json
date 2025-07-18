@@ -21,7 +21,12 @@
         "dev": false,
         "deprecated": true
       },
-      "toolchainFile": "toolchains/clang-libcxx-toolchain.cmake"
+      "cacheVariables": {
+        "CMAKE_C_COMPILER" : "/usr/bin/clang-20",
+        "CMAKE_CXX_COMPILER" : "/usr/bin/clang++-20",
+        "CMAKE_LINKER_TYPE" : "LLD",
+        "CMAKE_CXX_FLAGS" : "-stdlib=libc++ -rtlib=compiler-rt -lunwind -lc++abi -static -Wall -Wpedantic -Wextra"
+      }
     },
     {
       "name": "debug",
@@ -31,7 +36,7 @@
       "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_FLAGS_DEBUG": "-g -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG -D_LIBCPP_DEBUG -D_LIBCPP_ENABLE_DEBUG_MODE -D_LIBCPP_DEBUG_LEVEL=2 -D_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS -D_LIBCPP_ENABLE_CONTRACTS"
+        "CMAKE_CXX_FLAGS_DEBUG": "-g"
       }
     },
     {
@@ -42,7 +47,7 @@
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -flto=full -march=native -DNDEBUG -mtune=native -mllvm -enable-jump-table-to-switch"
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -flto=full -march=native -DNDEBUG -mtune=native"
       }
     }
   ],

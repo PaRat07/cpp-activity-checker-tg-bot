@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.10...3.11)
-project(tg_waifu)
-
-set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
+project(activity-check-bot)
 set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
+set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
 set(CMAKE_CXX_STANDARD 23)
 
 file(
@@ -21,13 +20,13 @@ CPMAddPackage(
 
 CPMAddPackage("gh:PaRat07/SQLiteCpp#origin/master")
 
-add_executable(tg_waifu
+add_executable(activity-check-bot
         main.cpp
         src/database.cpp)
 
-target_include_directories(tg_waifu PUBLIC include)
+target_include_directories(activity-check-bot PUBLIC include)
 
-target_link_libraries(tg_waifu
+target_link_libraries(activity-check-bot
         tgbmlib
         SQLiteCpp
         sqlite3
