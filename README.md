@@ -7,3 +7,7 @@
 Способ запуска бота:
 1. ```docker build . -t "tg-bot"```
 2. ```docker run -e BOT_TOKEN=<YOUR_BOT_TOKEN> "tg-bot"```
+
+Необходимые для бота настройки
+1. /setinline
+2. /setinlinefeedback (Enabled)
