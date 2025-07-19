@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <atomic>
 #include <expected>
 #include <string>
 
@@ -30,8 +29,6 @@ public:
 
   static constexpr std::string_view kActivityFileName = "acitity.csv";
   static constexpr std::string_view kOwnerFileName = "owner";
-  static inline std::atomic<uint64_t> cur_coll_cnt = 0;
-  static_assert(decltype(cur_coll_cnt)::is_always_lock_free);
 
   std::expected<std::filesystem::path, std::string_view> GetActivityCheckList(int64_t check_id,
                                                                               tgbm::api::Integer asker) const;
