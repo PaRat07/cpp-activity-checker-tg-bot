@@ -3,7 +3,7 @@ project(activity-check-bot)
 set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
 set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
 set(CMAKE_CXX_STANDARD 23)
-
+#set(TGBM_ENABLE_GEN ON)
 file(
         DOWNLOAD
         https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.38.3/CPM.cmake

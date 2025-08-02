@@ -111,6 +111,11 @@ static dd::task<void> AnswerInlineChosen(tgbm::bot& bot, tgbm::api::ChosenInline
   co_return;
 }
 
+static const tgbm::api::arrayof<tgbm::api::String> allowed_updates =
+  tgbm::api::allowed_updates::values
+    | std::views::transform([] (std::string_view sv) { return tgbm::api::String(sv); })
+    | std::ranges::to<tgbm::api::arrayof>();
+
 dd::task<void> StartMainTask(tgbm::bot& bot) {
   on_scope_exit {
     // stop bot on failure
@@ -118,7 +123,7 @@ dd::task<void> StartMainTask(tgbm::bot& bot) {
   };
   fmt::println("launching echobot, info: {}", co_await bot.api.getMe());
 
-  co_foreach(tgbm::api::Update && u, bot.updates()) {
+  co_foreach(tgbm::api::Update && u, bot.updates({ .allowed_updates = allowed_updates })) {
     TGBM_LOG_DEBUG("got something");
     if (auto *cq = u.get_callback_query(); cq) {
       AnswerCallbackQuery(bot, std::move(*cq)).start_and_detach();
